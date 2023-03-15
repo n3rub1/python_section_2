@@ -9,6 +9,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 
+import matplotlib.transforms as transforms
+
 # variableNameDictionary = {}
 variableNames = ["omegabh2", "omegach2", "theta", "tau", "w", "logA", "ns"]
 
@@ -50,32 +52,42 @@ def getCovarianceMatrix(variableNameOne, variableNameTwo, fullDataMatrix):
 
 def _calculateInnerFormula(sigmaX, sigmaY, sigmaXY):
     """calculate the inner parts of the ellipse parameters"""
-    firstPart = ((sigmaX**2 + sigmaY**2) / 2)
-    innerPart = ((((sigmaX**2 - sigmaY**2)**2)/4)+(sigmaXY**2))
+    firstPart = ((sigmaX + sigmaY) / 2)
+    innerPart = ((((sigmaX - sigmaY)**2)/4)+(sigmaXY**2))
     root = np.sqrt(innerPart)
     return [firstPart, root]
     
 def _calculateASquared(sigmaX, sigmaY, sigmaXY, levelOfConfidence):
     """Get the confidence ellipse parameters for a^2"""
-    a = _calculateInnerFormula(sigmaX, sigmaY, sigmaXY)
-    return (a[0] + a[1]) * levelOfConfidence
+    aParts = _calculateInnerFormula(sigmaX, sigmaY, sigmaXY)
+    aSquared = aParts[0] + aParts[1]
+    a = np.sqrt(aSquared)
+    a = a * levelOfConfidence
+    return a
 
 def _calculateBSqaured(sigmaX, sigmaY, sigmaXY, levelOfConfidence):
     """Get the confidence ellipse parameters for b^2"""
-    b = _calculateInnerFormula(sigmaX, sigmaY, sigmaXY)
-    return (b[0] - b[1]) * levelOfConfidence
+    bParts = _calculateInnerFormula(sigmaX, sigmaY, sigmaXY)
+    bSquared = bParts[0] - bParts[1]
+    b = np.sqrt(bSquared)
+    b = b * levelOfConfidence
+    return b
     
 def _calculateTanTwoTheta(sigmaX, sigmaY, sigmaXY):
     """Get the confidence ellipse parameters for tan(20)"""
-    return ((2*sigmaXY)/(sigmaX**2-sigmaY**2))
+    tanTwoTheta = ((2*sigmaXY)/(sigmaX-sigmaY))
+    twoTheta = np.arctan(tanTwoTheta)
+    theta = twoTheta / 2
+    thetaInDegrees = (theta * 360) / (2 * np.pi)
+    return thetaInDegrees
     
 def ellipse_params(sigmaX, sigmaY, sigmaXY, levelOfConfidence):
     """Calculate the width, height and inclination depending of the level of confidence"""
-    a = np.sqrt(np.abs(_calculateASquared(sigmaX, sigmaY, sigmaXY, levelOfConfidence)))
-    b = np.sqrt(np.abs(_calculateBSqaured(sigmaX, sigmaY, sigmaXY, levelOfConfidence)))
-    tan2Theta = 0.5 * np.arctan(_calculateTanTwoTheta(sigmaX, sigmaY, sigmaXY))
-    result = np.array([a, b, tan2Theta])
-    print("Width={0}, Height={1}, Inclination={2}".format(a, b, tan2Theta))
+    a = _calculateASquared(sigmaX, sigmaY, sigmaXY, levelOfConfidence)
+    b = _calculateBSqaured(sigmaX, sigmaY, sigmaXY, levelOfConfidence)
+    thetaInDegrees = _calculateTanTwoTheta(sigmaX, sigmaY, sigmaXY)
+    result = np.array([a, b, thetaInDegrees])
+    print("(a) Width={0}, (b) Height={1}, (theta) Inclination={2}".format(a, b, thetaInDegrees))
     return result
     
 #initilalize the program and fill up the matrix values in the dictionary
@@ -99,52 +111,103 @@ printCovarianceAndFisherValues(omegach2VsWCovarianceMatrix, omegach2VsWFisherMat
 printCovarianceAndFisherValues(logAVsNsCovarianceMatrix, logAVsNsFisherMatrix, "logA", "ns")
 printCovarianceAndFisherValues(tauVsWCovarianceMatrix, tauVsWFisherMatrix, "tau", "w")
 
-#[0][0] sigmaX, [0][1] sigma xy [1][0] sigma xy [1][1] sigma y
 
 # sigmaX = float(input("Enter sigmaX: "))
 # sigmaY = float(input("Enter sigmaY: "))
 # sigmaXY = float(input("Enter sigmaXY: "))
 confidenceA = 1.52
-# # confidenceB = 2.48
+confidenceB = 2.48
 
-print("SigmaX {0}".format(omegabh2VsOmegach2FisherMatrix[0][0]))
-print("SigmaY {0}".format(omegabh2VsOmegach2FisherMatrix[1][1]))
-print("SigmaXY {0}".format(omegabh2VsOmegach2FisherMatrix[0][1]))
+print("SigmaX {0}".format(omegabh2VsOmegach2CovarianceMatrix[0][0]))
+print("SigmaY {0}".format(omegabh2VsOmegach2CovarianceMatrix[1][1]))
+print("SigmaXY {0}".format(omegabh2VsOmegach2CovarianceMatrix[0][1]))
 
 
+#[0][0] sigmaX, [0][1] sigma xy [1][0] sigma xy [1][1] sigma y
 # ellipseResultFromUser = ellipse_params(sigmaX, sigmaY, sigmaXY, confidenceA)
-ellipseResultFromOmegabh2VsOmegach2 = ellipse_params(omegabh2VsOmegach2CovarianceMatrix[0][0], omegabh2VsOmegach2CovarianceMatrix[1][1], omegabh2VsOmegach2CovarianceMatrix[0][1], confidenceA)
-# ellipseResultFromOmegabh2VsOmegach2 = ellipse_params(omegabh2VsOmegach2FisherMatrix[0][0], omegabh2VsOmegach2FisherMatrix[1][1], omegabh2VsOmegach2FisherMatrix[0][1], confidenceA)
+ellipseResultFromOmegabh2VsOmegach2_A = ellipse_params(omegabh2VsOmegach2CovarianceMatrix[0][0],
+                                                       omegabh2VsOmegach2CovarianceMatrix[1][1],
+                                                       omegabh2VsOmegach2CovarianceMatrix[0][1], confidenceA)
+
+ellipseResultFromOmegabh2VsOmegach2_B = ellipse_params(omegabh2VsOmegach2CovarianceMatrix[0][0],
+                                                       omegabh2VsOmegach2CovarianceMatrix[1][1],
+                                                       omegabh2VsOmegach2CovarianceMatrix[0][1], confidenceB)
+
+
+#############################################################################################################
+
+# def get_correlated_dataset(n, dependency, mu, scale):
+#     latent = np.random.randn(n, 2)
+#     dependent = latent.dot(dependency)
+#     scaled = dependent * scale
+#     scaled_with_offset = scaled + mu
+#     scaled_with_offset = dependent * mu
+#     # return x and y of the new, correlated dataset
+#     return scaled_with_offset[:, 0], scaled_with_offset[:, 1]
+
+
+# mu = 0.022, 0.12
+# scale = 1,1
+# print(scale)
+# test1, test2 = get_correlated_dataset(500, omegabh2VsOmegach2FisherMatrix, mu, scale)
 
 # Define the ellipse parameters
-width = ellipseResultFromOmegabh2VsOmegach2[0]
-height = ellipseResultFromOmegabh2VsOmegach2[1]
-inclination = ellipseResultFromOmegabh2VsOmegach2[2]
+width_A = ellipseResultFromOmegabh2VsOmegach2_A[0]
+height_A = ellipseResultFromOmegabh2VsOmegach2_A[1]
+inclination_A = ellipseResultFromOmegabh2VsOmegach2_A[2]
 
-# Calculate the angle of the semi-major axis
-theta = inclination * np.pi / 180
+width_B = ellipseResultFromOmegabh2VsOmegach2_B[0]
+height_B = ellipseResultFromOmegabh2VsOmegach2_B[1]
+inclination_B = ellipseResultFromOmegabh2VsOmegach2_B[2]
 
-# Calculate the x and y coordinates of the center of the ellipse
-x0, y0 = 0.022, 0.12
+x, y = 0.022, 0.12
 
-# Create the ellipse object
-ellipse = Ellipse(xy=(x0, y0), width=width, height=height, angle=inclination, fill=False)
+ellipseOneSigma = Ellipse(xy=(x, y), width=width_A, height=height_A, angle=inclination_A, fill=False, color='blue')
+ellipseTwoSigma = Ellipse(xy=(x, y), width=width_B, height=height_B, angle=inclination_B, fill=False, color='blue', linestyle = "dotted")
+
+mean = np.array([x, y])
+# samples = np.random.multivariate_normal(mean, omegabh2VsOmegach2CovarianceMatrix, 500)
+
 
 # Create the plot and add the ellipse to it
-fig, ax = plt.subplots(figsize=(8,8))
-ax.add_artist(ellipse)
-ax.scatter(x0, y0, color='red')
+fig, ax = plt.subplots()
+ax.add_patch(ellipseOneSigma)
+ax.add_artist(ellipseTwoSigma)
+# ax.scatter(samples[:, 0], samples[:, 1], s=5, color='black')
 
-# Set the plot limits to ensure that the entire ellipse is visible
-x_pad = width / 2
-y_pad = height / 2
-ax.set_xlim(x0 - width - x_pad, x0 + width + x_pad)
-ax.set_ylim(y0 - height - y_pad, y0 + height + y_pad)
+# ax.scatter(test1, test2, s= 0.5, color= "black")
 
+
+# Define the covariance matrix
+covariance_matrix = np.array([[2.02e-08, -8.54e-08], [-8.54e-08, 1.35e-06]])
+
+# Calculate the eigenvalues and eigenvectors of the covariance matrix
+eigenvalues, eigenvectors = np.linalg.eig(covariance_matrix)
+
+# Calculate the scales for each principal axis
+scales = np.sqrt(eigenvalues)
+
+# Generate the correlated dataset
+mu = np.array([0.022, 0.12])
+correlated_data = np.random.randn(500, 2).dot(eigenvectors)
+scaled_data = correlated_data.dot(np.diag(scales)).dot(eigenvectors.T) + mu
+
+ax.scatter(scaled_data[:, 0], scaled_data[:, 1])
+
+# for s in samples:
+#     print(s)
+#     ax.scatter(s[0], s[1], s=1, color="black")
+
+ax.plot(x, y, "ro")
+
+# Set the limits of the plot
+# ax.autoscale()
+# ax.set_aspect("equal")
+
+ax.set_xlim(xmin=min(x-width_A, x-width_B), xmax=max(x+width_A, x+width_B))
+ax.set_ylim(ymin=min(y-height_A, y-height_B), ymax=max(y+height_A, y+height_B))
 # Show the plot
 plt.show()
-
-
 
 
 
