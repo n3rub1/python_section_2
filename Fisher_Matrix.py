@@ -118,11 +118,6 @@ printCovarianceAndFisherValues(tauVsWCovarianceMatrix, tauVsWFisherMatrix, "tau"
 confidenceA = 1.52
 confidenceB = 2.48
 
-print("SigmaX {0}".format(omegabh2VsOmegach2CovarianceMatrix[0][0]))
-print("SigmaY {0}".format(omegabh2VsOmegach2CovarianceMatrix[1][1]))
-print("SigmaXY {0}".format(omegabh2VsOmegach2CovarianceMatrix[0][1]))
-
-
 #[0][0] sigmaX, [0][1] sigma xy [1][0] sigma xy [1][1] sigma y
 # ellipseResultFromUser = ellipse_params(sigmaX, sigmaY, sigmaXY, confidenceA)
 ellipseResultFromOmegabh2VsOmegach2_A = ellipse_params(omegabh2VsOmegach2CovarianceMatrix[0][0],
@@ -136,21 +131,6 @@ ellipseResultFromOmegabh2VsOmegach2_B = ellipse_params(omegabh2VsOmegach2Covaria
 
 #############################################################################################################
 
-# def get_correlated_dataset(n, dependency, mu, scale):
-#     latent = np.random.randn(n, 2)
-#     dependent = latent.dot(dependency)
-#     scaled = dependent * scale
-#     scaled_with_offset = scaled + mu
-#     scaled_with_offset = dependent * mu
-#     # return x and y of the new, correlated dataset
-#     return scaled_with_offset[:, 0], scaled_with_offset[:, 1]
-
-
-# mu = 0.022, 0.12
-# scale = 1,1
-# print(scale)
-# test1, test2 = get_correlated_dataset(500, omegabh2VsOmegach2FisherMatrix, mu, scale)
-
 # Define the ellipse parameters
 width_A = ellipseResultFromOmegabh2VsOmegach2_A[0]
 height_A = ellipseResultFromOmegabh2VsOmegach2_A[1]
@@ -161,53 +141,31 @@ height_B = ellipseResultFromOmegabh2VsOmegach2_B[1]
 inclination_B = ellipseResultFromOmegabh2VsOmegach2_B[2]
 
 x, y = 0.022, 0.12
-
-ellipseOneSigma = Ellipse(xy=(x, y), width=width_A, height=height_A, angle=inclination_A, fill=False, color='blue')
-ellipseTwoSigma = Ellipse(xy=(x, y), width=width_B, height=height_B, angle=inclination_B, fill=False, color='blue', linestyle = "dotted")
-
 mean = np.array([x, y])
-# samples = np.random.multivariate_normal(mean, omegabh2VsOmegach2CovarianceMatrix, 500)
+points = np.random.multivariate_normal(mean, omegabh2VsOmegach2CovarianceMatrix, size=500)
+ellipseOneSigma = Ellipse(xy=(x, y), width=width_A, height=height_A, angle=180-inclination_A, fill=False, color='blue')
+ellipseTwoSigma = Ellipse(xy=(x, y), width=width_B, height=height_B, angle=180-inclination_B, fill=False, color='blue', linestyle = "dotted")
 
+print(points[:,0])
 
 # Create the plot and add the ellipse to it
 fig, ax = plt.subplots()
 ax.add_patch(ellipseOneSigma)
 ax.add_artist(ellipseTwoSigma)
-# ax.scatter(samples[:, 0], samples[:, 1], s=5, color='black')
 
-# ax.scatter(test1, test2, s= 0.5, color= "black")
-
-
-# Define the covariance matrix
-covariance_matrix = np.array([[2.02e-08, -8.54e-08], [-8.54e-08, 1.35e-06]])
-
-# Calculate the eigenvalues and eigenvectors of the covariance matrix
-eigenvalues, eigenvectors = np.linalg.eig(covariance_matrix)
-
-# Calculate the scales for each principal axis
-scales = np.sqrt(eigenvalues)
-
-# Generate the correlated dataset
-mu = np.array([0.022, 0.12])
-correlated_data = np.random.randn(500, 2).dot(eigenvectors)
-scaled_data = correlated_data.dot(np.diag(scales)).dot(eigenvectors.T) + mu
-
-ax.scatter(scaled_data[:, 0], scaled_data[:, 1])
-
-# for s in samples:
-#     print(s)
-#     ax.scatter(s[0], s[1], s=1, color="black")
+# Plot the random points
+plt.scatter(points[:,0], points[:,1], color='black', s=1)
 
 ax.plot(x, y, "ro")
 
-# Set the limits of the plot
-# ax.autoscale()
-# ax.set_aspect("equal")
+ax.set_xlim(xmin=x-width_A*2, xmax=x+width_A*2)
+ax.set_ylim(ymin=y-height_A*2, ymax=y+height_A*2)
 
-ax.set_xlim(xmin=min(x-width_A, x-width_B), xmax=max(x+width_A, x+width_B))
-ax.set_ylim(ymin=min(y-height_A, y-height_B), ymax=max(y+height_A, y+height_B))
+# ax.set_xlim(xmin=min(x-width_A, x-width_B), xmax=max(x+width_A, x+width_B))
+# ax.set_ylim(ymin=min(y-height_A, y-height_B), ymax=max(y+height_A, y+height_B))
 # Show the plot
 plt.show()
+
 
 
 
