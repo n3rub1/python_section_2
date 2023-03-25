@@ -21,9 +21,6 @@ def getFullDataMatrix():
     """This method is used to bring in the original matrix"""
     #get the data using the genfromtxt method, do not skip the header, and get the data based on the tab spaces    
     return np.genfromtxt("base_w_plikHM_TTTEEE_lowl_lowE_BAO_Riess18_Pantheon.covmat",skip_header=0, names=True, delimiter="\t")
-    # np.set_printoptions(precision=15, suppress=True)
-    # return np.loadtxt("base_w_plikHM_TTTEEE_lowl_lowE_BAO_Riess18_Pantheon.covmat", skiprows=1)
-
     
 def printCovarianceAndFisherValues(covarianceMatrix, fisherMatrix, variableNameOne, variableNameTwo):
     """Prints the covariance and fisher matrix values"""

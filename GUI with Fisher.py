@@ -6,6 +6,7 @@ Created on Sat Mar 18 09:43:53 2023
 """
 
 import tkinter as tk
+from tkinter import ttk
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.patches import Ellipse
@@ -14,6 +15,59 @@ import numpy as np
 window = tk.Tk()
 window.title("Error Ellipses - Prototype")
 window.resizable(0,0)
+
+xVariable = tk.StringVar()
+yVariable = tk.StringVar()
+xCentre = tk.StringVar()
+yCentre = tk.StringVar()
+sigmaOne = tk.StringVar()
+sigmaTwo = tk.StringVar()
+
+def setVariables():
+    """This function is to set the variables based on user's input"""
+    xValue = customEntryX.get()
+    xVariable.set(xValue)
+    
+    yValue = customEntryY.get()
+    yVariable.set(yValue)
+    
+    xCentreValue = centreXEntry.get()
+    xCentre.set(xCentreValue)
+    
+    yCentreValue = centreYEntry.get()
+    yCentre.set(yCentreValue)
+    
+    sigmaOneValue = sigmaOneEntry.get()
+    sigmaOne.set(sigmaOneValue)
+    
+    sigmaTwoValue = sigmaTwoEntry.get()
+    sigmaTwo.set(sigmaTwoValue)
+    
+def _checkVariables():
+    """this method is used to check that the variables have been filled in successfully"""
+    if(xVariable.get() not in variableNames):
+        print("xVariable is empty or does not exist")
+        return False
+    
+    if(yVariable.get() not in variableNames):
+        print("yVariable is empty or does not exist")
+        return False
+        
+    try:
+        float(xCentre.get())
+        float(yCentre.get())
+        float(sigmaOne.get())
+        float(sigmaTwo.get())
+    except ValueError:
+        print("Values are either not integers/float or empty")
+        return False
+    
+    return True
+    
+
+def functionNotImplemented():
+    """A function that states that the button is not implemented yet"""
+    print("This function is not implemented in this prototype")
 
 def getHeaderVariables():
     """get the list of all the variable names from the file"""
@@ -25,7 +79,7 @@ def getHeaderVariables():
 
 def getFullDataMatrix():
     """This method is used to bring in the original matrix"""
-    #get the data using the genfromtxt method, do not skip the header, and get the data based on the tab spaces    
+    #get the data using the genfromtxt method, do not skip the header, and get the data based on the tab spaces
     return np.genfromtxt("base_w_plikHM_TTTEEE_lowl_lowE_BAO_Riess18_Pantheon.covmat",skip_header=0, names=True, delimiter="\t")
 
     
@@ -116,19 +170,60 @@ def importVariablesButton():
     
 def saveButton():
     """prints back the buttons text"""
-    print("Save")
+    
+    userCovarianceMatrix = getCovarianceMatrix(xVariable.get(), yVariable.get(), fullDataMatrix)
+    userFisherMatrix = getFisherMatrix(xVariable.get(), yVariable.get(), userCovarianceMatrix)
+    CONFIDENCE_A = float(sigmaOne.get())
+    
+    userEllipseResult_A = ellipse_params(userCovarianceMatrix[0][0],
+                                             userCovarianceMatrix[1][1],
+                                             userCovarianceMatrix[0][1], CONFIDENCE_A)
+    
+    with open("data.txt", "w")as file:
+        file.write(str(userCovarianceMatrix) +"\n" + str(userFisherMatrix))
     
 
 def plotButton():
     """prints back the buttons text"""
-    plot(ellipseResultFromOmegabh2VsOmegach2_A[0], ellipseResultFromOmegabh2VsOmegach2_B[0],
-         ellipseResultFromOmegabh2VsOmegach2_A[1], ellipseResultFromOmegabh2VsOmegach2_B[1],
-         ellipseResultFromOmegabh2VsOmegach2_A[2], ellipseResultFromOmegabh2VsOmegach2_B[2],
-         0.022, 0.12, omegabh2VsOmegach2CovarianceMatrix, "Ωbh2", "Ωch2")
+    setVariables()
+    isOk = _checkVariables()
+           
+    if(isOk == True):
+        #get the converiance matrices of the requested values
+        userCovarianceMatrix = getCovarianceMatrix(xVariable.get(), yVariable.get(), fullDataMatrix)
+    
+        #get the fisher matrices of the requested values
+        userFisherMatrix = getFisherMatrix(xVariable.get(), yVariable.get(), userCovarianceMatrix)
+    
+        #print converiance matrix and fisher matrix
+        printCovarianceAndFisherValues(userCovarianceMatrix, userFisherMatrix, xVariable.get(), yVariable.get())
+    
+        CONFIDENCE_A = float(sigmaOne.get())
+        CONFIDENCE_B = float(sigmaTwo.get())
+         
+        userEllipseResult_A = ellipse_params(userCovarianceMatrix[0][0],
+                                             userCovarianceMatrix[1][1],
+                                             userCovarianceMatrix[0][1], CONFIDENCE_A)
+    
+        userEllipseResult_B = ellipse_params(userCovarianceMatrix[0][0],
+                                             userCovarianceMatrix[1][1],
+                                             userCovarianceMatrix[0][1], CONFIDENCE_B)
+    
+    
+        printEllipse_params(userEllipseResult_A, "{0} vs {1}".format(xVariable.get(), yVariable.get()))
+      
+        plot(userEllipseResult_A[0], userEllipseResult_B[0],
+             userEllipseResult_A[1], userEllipseResult_B[1],
+             userEllipseResult_A[2], userEllipseResult_B[2],
+             float(xCentre.get()), float(yCentre.get()), userCovarianceMatrix, xVariable.get(), yVariable.get())
+        
+    else:
+        print("Could not print because something went wrong")
+        makeBlankCanvas()
 
 def exitButton():
     """prints back the buttons text"""
-    print("Exit")
+    window.destroy()
     
 def makeBlankCanvas():
     """makes a blank canvas at startup"""
@@ -173,94 +268,49 @@ def plot(widthA, widthB, heightA, heightB, inclinationA, inclinationB, x, y, cov
     canvas.draw()
     canvas.get_tk_widget().grid(row=0, column=0, rowspan=5, columnspan=6, padx= 10, pady=10)
     
-
-#initilalize the program and fill up the matrix values in the dictionary
 variableNames = getHeaderVariables()
 fullDataMatrix = getFullDataMatrix()
 
-#get the converiance matrices of the requested values
-omegabh2VsOmegach2CovarianceMatrix = getCovarianceMatrix("omegabh2", "omegach2", fullDataMatrix)
-omegach2VsWCovarianceMatrix = getCovarianceMatrix("omegach2", "w", fullDataMatrix)
-logAVsNsCovarianceMatrix = getCovarianceMatrix("logA", "ns", fullDataMatrix)
-tauVsWCovarianceMatrix = getCovarianceMatrix("tau", "w", fullDataMatrix)
-
-#get the fisher matrices of the requested values
-omegabh2VsOmegach2FisherMatrix = getFisherMatrix("omegabh2", "omegach2", omegabh2VsOmegach2CovarianceMatrix)
-omegach2VsWFisherMatrix = getFisherMatrix("omegach2", "w", omegach2VsWCovarianceMatrix)
-logAVsNsFisherMatrix = getFisherMatrix("logA", "ns", logAVsNsCovarianceMatrix)
-tauVsWFisherMatrix = getFisherMatrix("tau", "w", tauVsWCovarianceMatrix)
-
-#print converiance matrix and fisher matrix
-printCovarianceAndFisherValues(omegabh2VsOmegach2CovarianceMatrix, omegabh2VsOmegach2FisherMatrix, "omegabh2", "omegach2")
-printCovarianceAndFisherValues(omegach2VsWCovarianceMatrix, omegach2VsWFisherMatrix, "omegach2", "w")
-printCovarianceAndFisherValues(logAVsNsCovarianceMatrix, logAVsNsFisherMatrix, "logA", "ns")
-printCovarianceAndFisherValues(tauVsWCovarianceMatrix, tauVsWFisherMatrix, "tau", "w")
-
-CONFIDENCE_A = 1.52
-CONFIDENCE_B = 2.48
-
-ellipseResultFromOmegabh2VsOmegach2_A = ellipse_params(omegabh2VsOmegach2CovarianceMatrix[0][0],
-                                                       omegabh2VsOmegach2CovarianceMatrix[1][1],
-                                                       omegabh2VsOmegach2CovarianceMatrix[0][1], CONFIDENCE_A)
-
-ellipseResultFromOmegabh2VsOmegach2_B = ellipse_params(omegabh2VsOmegach2CovarianceMatrix[0][0],
-                                                       omegabh2VsOmegach2CovarianceMatrix[1][1],
-                                                       omegabh2VsOmegach2CovarianceMatrix[0][1], CONFIDENCE_B)
-
-ellipseResultFromOmegach2VsW_A = ellipse_params(omegach2VsWCovarianceMatrix[0][0],
-                                                omegach2VsWCovarianceMatrix[1][1],
-                                                omegach2VsWCovarianceMatrix[0][1], CONFIDENCE_A)
-
-ellipseResultFromOmegach2VsW_B = ellipse_params(omegach2VsWCovarianceMatrix[0][0],
-                                              omegach2VsWCovarianceMatrix[1][1],
-                                              omegach2VsWCovarianceMatrix[0][1], CONFIDENCE_B)
-
-ellipseResultFromlogAVsNs_A = ellipse_params(logAVsNsCovarianceMatrix[0][0],
-                                             logAVsNsCovarianceMatrix[1][1],
-                                             logAVsNsCovarianceMatrix[0][1], CONFIDENCE_A)
-
-ellipseResultFromlogAVsNs_B = ellipse_params(logAVsNsCovarianceMatrix[0][0],
-                                             logAVsNsCovarianceMatrix[1][1],
-                                             logAVsNsCovarianceMatrix[0][1], CONFIDENCE_B)
-
-ellipseResultFromtauVsW_A = ellipse_params(tauVsWCovarianceMatrix[0][0],
-                                             tauVsWCovarianceMatrix[1][1],
-                                             tauVsWCovarianceMatrix[0][1], CONFIDENCE_A)
-
-ellipseResultFromtauVsW_B = ellipse_params(tauVsWCovarianceMatrix[0][0],
-                                             tauVsWCovarianceMatrix[1][1],
-                                             tauVsWCovarianceMatrix[0][1], CONFIDENCE_B)
-
-printEllipse_params(ellipseResultFromOmegabh2VsOmegach2_A, "Ωbh2 vs Ωch2")
-printEllipse_params(ellipseResultFromOmegach2VsW_A, "Ωch2 vs w")
-printEllipse_params(ellipseResultFromlogAVsNs_A, "ln(A) vs ns")
-printEllipse_params(ellipseResultFromtauVsW_A, "τ vs w")
-   
-
 customLabelX = tk.Label(window, text = "Variable X").grid(row=5, column = 0, pady=10)
-customEntryX = tk.Entry(window).grid(row = 5, column = 1, columnspan = 2, pady=10)
+customEntryX = ttk.Combobox(window, values = variableNames)
+customEntryX.grid(row = 5, column = 1, columnspan = 2, pady=10)
 
 customLabelY = tk.Label(window, text = "Variable Y").grid(row=6, column = 0, pady=10)
-customEntryY = tk.Entry(window).grid(row = 6, column = 1, columnspan = 2, pady=10)
+customEntryY = ttk.Combobox(window, values = variableNames)
+customEntryY.grid(row = 6, column = 1, columnspan = 2, pady=10)
 
-sigmaOneLabel = tk.Label(window, text = "Center X").grid(row=7, column = 0, pady=10)
-sigmaOneEntry = tk.Entry(window).grid(row = 7, column = 1, columnspan = 2, pady=10)
+# customLabelX = tk.Label(window, text = "Variable X").grid(row=5, column = 0, pady=10)
+# customEntryX = tk.Entry(window)
+# customEntryX.grid(row = 5, column = 1, columnspan = 2, pady=10)
 
-sigmaTwoLabel = tk.Label(window, text = "Center Y").grid(row=5, column = 4, pady=10)
-sigmaTwoEntry = tk.Entry(window).grid(row = 5, column = 5, pady=10)
+# customLabelY = tk.Label(window, text = "Variable Y").grid(row=6, column = 0, pady=10)
+# customEntryY = tk.Entry(window)
+# customEntryY.grid(row = 6, column = 1, columnspan = 2, pady=10)
 
-centreCValue = tk.Label(window, text = "σ-1").grid(row=6, column = 4, pady=10)
-centreXEntry = tk.Entry(window).grid(row = 6, column = 5, pady=10)
+centreXLabel = tk.Label(window, text = "Center X").grid(row=7, column = 0, pady=10)
+centreXEntry = tk.Entry(window)
+centreXEntry.grid(row = 7, column = 1, columnspan = 2, pady=10)
 
-centreYValue = tk.Label(window, text = "σ-2").grid(row=7, column = 4, pady=10)
-centreYEntry = tk.Entry(window).grid(row = 7, column = 5, pady=10)
+centreYLabel = tk.Label(window, text = "Center Y").grid(row=5, column = 4, pady=10)
+centreYEntry = tk.Entry(window)
+centreYEntry.grid(row = 5, column = 5, pady=10)
 
-importMatrix = tk.Button(window, text = "Import Matrix", command = getFullDataMatrix, width = 20).grid(row = 0, column=6, padx=10)
-importVariables = tk.Button(window, text = "Import Variables", command = getHeaderVariables, width = 20).grid(row = 1, column=6, padx=10)
+sigmaOneLabel = tk.Label(window, text = "σ-1").grid(row=6, column = 4, pady=10)
+sigmaOneEntry = tk.Entry(window)
+sigmaOneEntry.grid(row = 6, column = 5, pady=10)
+
+sigmaTwoLabel = tk.Label(window, text = "σ-2").grid(row=7, column = 4, pady=10)
+sigmaTwoEntry = tk.Entry(window)
+sigmaTwoEntry.grid(row = 7, column = 5, pady=10)
+
+
+makeBlankCanvas()
+
+  
+importMatrix = tk.Button(window, text = "Import Matrix", command = functionNotImplemented, width = 20).grid(row = 0, column=6, padx=10)
+importVariables = tk.Button(window, text = "Import Variables", command = functionNotImplemented, width = 20).grid(row = 1, column=6, padx=10)
 save = tk.Button(window, text = "Save", command = saveButton, width = 20).grid(row = 2, column=6, padx=10)
 plottingButton = tk.Button(window, text = "Plot", command = plotButton, width = 20).grid(row = 3, column=6, padx=10)
 exitProgramButton = tk.Button(window, text = "Exit", command = exitButton, width = 20).grid(row = 4, column=6, padx=10)
-
-makeBlankCanvas()
 
 window.mainloop()
