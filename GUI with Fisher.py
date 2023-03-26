@@ -2,7 +2,7 @@
 """
 Created on Sat Mar 18 09:43:53 2023
 
-@author: User
+@author: Robert Gatt SM4391
 """
 
 import tkinter as tk
@@ -95,7 +95,7 @@ def printCovarianceAndFisherValues(covarianceMatrix, fisherMatrix, variableNameO
     print(fisherMatrix, end="\n\n")
     
 
-def getFisherMatrix(variableNameOne, variableNameTwo, covarianceMatrix):
+def getFisherMatrix(covarianceMatrix):
     """transforms the two arrays into a fisher matrix and prints out the values"""
     fisherMatrix = np.linalg.inv(covarianceMatrix)
     return(fisherMatrix)
@@ -169,19 +169,18 @@ def importVariablesButton():
     
     
 def saveButton():
-    """prints back the buttons text"""
+    """saves covariance, fisher and the ellipses results in a text file called data"""
     
     userCovarianceMatrix = getCovarianceMatrix(xVariable.get(), yVariable.get(), fullDataMatrix)
     userFisherMatrix = getFisherMatrix(xVariable.get(), yVariable.get(), userCovarianceMatrix)
     CONFIDENCE_A = float(sigmaOne.get())
     
-    userEllipseResult_A = ellipse_params(userCovarianceMatrix[0][0],
-                                             userCovarianceMatrix[1][1],
-                                             userCovarianceMatrix[0][1], CONFIDENCE_A)
+    ellipseResult = ellipse_params(userCovarianceMatrix[0][0],
+                                         userCovarianceMatrix[1][1],
+                                         userCovarianceMatrix[0][1], CONFIDENCE_A)
     
     with open("data.txt", "w")as file:
-        file.write(str(userCovarianceMatrix) +"\n" + str(userFisherMatrix))
-    
+        file.write("Covariance Matrix \n" + str(userCovarianceMatrix) + "\nFisher Matrix \n" + str(userFisherMatrix) + "\nEllipse Result\n" +str(ellipseResult))
 
 def plotButton():
     """prints back the buttons text"""
@@ -193,7 +192,7 @@ def plotButton():
         userCovarianceMatrix = getCovarianceMatrix(xVariable.get(), yVariable.get(), fullDataMatrix)
     
         #get the fisher matrices of the requested values
-        userFisherMatrix = getFisherMatrix(xVariable.get(), yVariable.get(), userCovarianceMatrix)
+        userFisherMatrix = getFisherMatrix(userCovarianceMatrix)
     
         #print converiance matrix and fisher matrix
         printCovarianceAndFisherValues(userCovarianceMatrix, userFisherMatrix, xVariable.get(), yVariable.get())
@@ -218,7 +217,7 @@ def plotButton():
              float(xCentre.get()), float(yCentre.get()), userCovarianceMatrix, xVariable.get(), yVariable.get())
         
     else:
-        print("Could not print because something went wrong")
+        print("Could not plot because something went wrong")
         makeBlankCanvas()
 
 def exitButton():
@@ -279,14 +278,6 @@ customLabelY = tk.Label(window, text = "Variable Y").grid(row=6, column = 0, pad
 customEntryY = ttk.Combobox(window, values = variableNames)
 customEntryY.grid(row = 6, column = 1, columnspan = 2, pady=10)
 
-# customLabelX = tk.Label(window, text = "Variable X").grid(row=5, column = 0, pady=10)
-# customEntryX = tk.Entry(window)
-# customEntryX.grid(row = 5, column = 1, columnspan = 2, pady=10)
-
-# customLabelY = tk.Label(window, text = "Variable Y").grid(row=6, column = 0, pady=10)
-# customEntryY = tk.Entry(window)
-# customEntryY.grid(row = 6, column = 1, columnspan = 2, pady=10)
-
 centreXLabel = tk.Label(window, text = "Center X").grid(row=7, column = 0, pady=10)
 centreXEntry = tk.Entry(window)
 centreXEntry.grid(row = 7, column = 1, columnspan = 2, pady=10)
@@ -303,10 +294,8 @@ sigmaTwoLabel = tk.Label(window, text = "σ-2").grid(row=7, column = 4, pady=10)
 sigmaTwoEntry = tk.Entry(window)
 sigmaTwoEntry.grid(row = 7, column = 5, pady=10)
 
-
 makeBlankCanvas()
 
-  
 importMatrix = tk.Button(window, text = "Import Matrix", command = functionNotImplemented, width = 20).grid(row = 0, column=6, padx=10)
 importVariables = tk.Button(window, text = "Import Variables", command = functionNotImplemented, width = 20).grid(row = 1, column=6, padx=10)
 save = tk.Button(window, text = "Save", command = saveButton, width = 20).grid(row = 2, column=6, padx=10)
