@@ -43,6 +43,7 @@ def setVariables():
     sigmaTwoValue = sigmaTwoEntry.get()
     sigmaTwo.set(sigmaTwoValue)
     
+    
 def _checkVariables():
     """this method is used to check that the variables have been filled in successfully"""
     if(xVariable.get() not in variableNames):
@@ -68,6 +69,7 @@ def _checkVariables():
 def functionNotImplemented():
     """A function that states that the button is not implemented yet"""
     print("This function is not implemented in this prototype")
+    
 
 def getHeaderVariables():
     """get the list of all the variable names from the file"""
@@ -151,9 +153,10 @@ def _calculateTanTwoTheta(sigmaX, sigmaY, sigmaXY):
     return thetaInDegrees
 
 
-def printEllipse_params(params, name):
+def printEllipse_params(params, name, confidenceLevel):
     """prints the width, height and inclination for all ellipses with α = 1.52"""
-    print("{0}  at α = 1.52 \n height (a): {1}, width(b): {2}, inclination in degrees(θ): {3}\n".format(name, params[0], params[1], params[2]))
+    print("{0}  at α = {1} \n height (a): {2}, width(b): {3}, inclination in degrees(θ): {4}\n".format(name, confidenceLevel, params[0], params[1], params[2]))
+    
     
 def ellipse_params(sigmaX, sigmaY, sigmaXY, levelOfConfidence):
     """Calculate the width, height and inclination depending of the level of confidence"""
@@ -163,16 +166,12 @@ def ellipse_params(sigmaX, sigmaY, sigmaXY, levelOfConfidence):
     result = np.array([b, a, thetaInDegrees])
     return result
     
-def importVariablesButton():
-    """prints back the buttons text"""
-    print("Import Variables")
-    
-    
+   
 def saveButton():
     """saves covariance, fisher and the ellipses results in a text file called data"""
     
     userCovarianceMatrix = getCovarianceMatrix(xVariable.get(), yVariable.get(), fullDataMatrix)
-    userFisherMatrix = getFisherMatrix(xVariable.get(), yVariable.get(), userCovarianceMatrix)
+    userFisherMatrix = getFisherMatrix(userCovarianceMatrix)
     CONFIDENCE_A = float(sigmaOne.get())
     
     ellipseResult = ellipse_params(userCovarianceMatrix[0][0],
@@ -209,7 +208,7 @@ def plotButton():
                                              userCovarianceMatrix[0][1], CONFIDENCE_B)
     
     
-        printEllipse_params(userEllipseResult_A, "{0} vs {1}".format(xVariable.get(), yVariable.get()))
+        printEllipse_params(userEllipseResult_A, "{0} vs {1}".format(xVariable.get(), yVariable.get()), CONFIDENCE_A)
       
         plot(userEllipseResult_A[0], userEllipseResult_B[0],
              userEllipseResult_A[1], userEllipseResult_B[1],
@@ -278,11 +277,11 @@ customLabelY = tk.Label(window, text = "Variable Y").grid(row=6, column = 0, pad
 customEntryY = ttk.Combobox(window, values = variableNames)
 customEntryY.grid(row = 6, column = 1, columnspan = 2, pady=10)
 
-centreXLabel = tk.Label(window, text = "Center X").grid(row=7, column = 0, pady=10)
+centreXLabel = tk.Label(window, text = "Centre X").grid(row=7, column = 0, pady=10)
 centreXEntry = tk.Entry(window)
 centreXEntry.grid(row = 7, column = 1, columnspan = 2, pady=10)
 
-centreYLabel = tk.Label(window, text = "Center Y").grid(row=5, column = 4, pady=10)
+centreYLabel = tk.Label(window, text = "Centre Y").grid(row=5, column = 4, pady=10)
 centreYEntry = tk.Entry(window)
 centreYEntry.grid(row = 5, column = 5, pady=10)
 
